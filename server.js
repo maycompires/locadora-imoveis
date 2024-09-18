@@ -81,19 +81,35 @@ app.get('/soma_pagamentos', (req, res) => {
     const sql = `
         SELECT 
             i.codigo_imovel, 
-            SUM(p.valor_do_pagamento) AS soma_pagamentos
+            p.valor_do_pagamento
         FROM pagamentos p
-        JOIN imoveis i ON p.codigo_imovel = i.codigo_imovel
-        GROUP BY i.codigo_imovel;
+        JOIN imoveis i ON p.codigo_imovel = i.codigo_imovel;
     `;
     
     connection.query(sql, (error, results) => {
         if (error) {
-            return res.status(500).send(`Erro ao consultar a soma dos pagamentos: ${error.message}`);
+            return res.status(500).send(`Erro ao consultar os pagamentos: ${error.message}`);
         }
-        res.json(results);
+
+        // Processamento funcional em memória com conversão de valor_do_pagamento para número
+        const somaPagamentos = results.reduce((acc, pagamento) => {
+            if (!acc[pagamento.codigo_imovel]) {
+                acc[pagamento.codigo_imovel] = 0;
+            }
+            acc[pagamento.codigo_imovel] += parseFloat(pagamento.valor_do_pagamento);
+            return acc;
+        }, {});
+
+        // Converte o resultado em um array de objetos
+        const resultadoFinal = Object.keys(somaPagamentos).map(codigo_imovel => ({
+            codigo_imovel,
+            soma_pagamentos: somaPagamentos[codigo_imovel].toFixed(2)
+        }));
+
+        res.json(resultadoFinal);
     });
 });
+
 
 // Rota para obter a soma dos pagamentos por mês e ano
 app.get('/vendas_por_mes', (req, res) => {
@@ -136,33 +152,40 @@ app.get('/vendas_por_mes', (req, res) => {
 app.get('/percentual_imoveis', (req, res) => {
     const sql = `
         SELECT 
-            p.codigo_imovel AS tipo_imovel, 
-            COUNT(*) AS total_vendas,
-            (COUNT(*) * 100.0 / (SELECT COUNT(*) FROM pagamentos)) AS percentual
+            i.tipo_imovel, 
+            p.codigo_imovel
         FROM 
             pagamentos p
-        GROUP BY 
-            p.codigo_imovel
-        ORDER BY 
-            percentual DESC;
+        JOIN imoveis i ON p.codigo_imovel = i.codigo_imovel;
     `;
 
     connection.query(sql, (error, results) => {
         if (error) {
-            return res.status(500).send(`Erro ao calcular o percentual de vendas por imóvel: ${error.message}`);
+            return res.status(500).send(`Erro ao consultar dados de imóveis: ${error.message}`);
         }
 
-        // Usando map para transformar os resultados
-        const formattedResults = results.map(row => ({
-            tipo_imovel: row.tipo_imovel,
-            total_vendas: row.total_vendas,
-            percentual: `${parseFloat(row.percentual).toFixed(2)}%`
+        // Total de vendas (quantidade de registros)
+        const totalVendas = results.length;
+
+        // Processamento em memória para calcular o percentual
+        const vendasPorImovel = results.reduce((acc, curr) => {
+            if (!acc[curr.tipo_imovel]) {
+                acc[curr.tipo_imovel] = 0;
+            }
+            acc[curr.tipo_imovel] += 1;
+            return acc;
+        }, {});
+
+        // Transformar os resultados em um array e calcular o percentual
+        const percentualImoveis = Object.keys(vendasPorImovel).map(tipo_imovel => ({
+            tipo_imovel,
+            total_vendas: vendasPorImovel[tipo_imovel],
+            percentual: `${((vendasPorImovel[tipo_imovel] / totalVendas) * 100).toFixed(2)}%`
         }));
 
-        res.json(formattedResults);
+        res.json(percentualImoveis);
     });
 });
-
 
 // Rota de teste
 app.get('/', (req, res) => {
