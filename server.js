@@ -109,7 +109,7 @@ app.get('/vendas_por_mes', (req, res) => {
             return res.status(500).send(`Erro ao consultar vendas por mês: ${error.message}`);
         }
 
-        // Processar os resultados usando programação funcional
+        // Processar os resultados
         const vendasPorMes = results
             .map(row => ({
                 periodo: row.periodo,
@@ -132,7 +132,7 @@ app.get('/vendas_por_mes', (req, res) => {
     });
 });
 
-// Rota para obter o percentual de vendas por tipo de imóvel com formatação usando programação funcional
+// Percentual de vendas por tipo de imóvel
 app.get('/percentual_imoveis', (req, res) => {
     const sql = `
         SELECT 
@@ -152,7 +152,7 @@ app.get('/percentual_imoveis', (req, res) => {
             return res.status(500).send(`Erro ao calcular o percentual de vendas por imóvel: ${error.message}`);
         }
 
-        // Usando map para transformar os resultados, aplicando formatação ao percentual
+        // Usando map para transformar os resultados
         const formattedResults = results.map(row => ({
             tipo_imovel: row.tipo_imovel,
             total_vendas: row.total_vendas,
