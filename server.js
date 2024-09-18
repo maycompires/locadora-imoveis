@@ -152,11 +152,9 @@ app.get('/vendas_por_mes', (req, res) => {
 app.get('/percentual_imoveis', (req, res) => {
     const sql = `
         SELECT 
-            i.tipo_imovel, 
             p.codigo_imovel
         FROM 
-            pagamentos p
-        JOIN imoveis i ON p.codigo_imovel = i.codigo_imovel;
+            pagamentos p;
     `;
 
     connection.query(sql, (error, results) => {
@@ -167,20 +165,20 @@ app.get('/percentual_imoveis', (req, res) => {
         // Total de vendas (quantidade de registros)
         const totalVendas = results.length;
 
-        // Processamento em memória para calcular o percentual
+        // Processamento em memória para contar as vendas por imóvel
         const vendasPorImovel = results.reduce((acc, curr) => {
-            if (!acc[curr.tipo_imovel]) {
-                acc[curr.tipo_imovel] = 0;
+            if (!acc[curr.codigo_imovel]) {
+                acc[curr.codigo_imovel] = 0;
             }
-            acc[curr.tipo_imovel] += 1;
+            acc[curr.codigo_imovel] += 1;
             return acc;
         }, {});
 
         // Transformar os resultados em um array e calcular o percentual
-        const percentualImoveis = Object.keys(vendasPorImovel).map(tipo_imovel => ({
-            tipo_imovel,
-            total_vendas: vendasPorImovel[tipo_imovel],
-            percentual: `${((vendasPorImovel[tipo_imovel] / totalVendas) * 100).toFixed(2)}%`
+        const percentualImoveis = Object.keys(vendasPorImovel).map(codigo_imovel => ({
+            codigo_imovel,
+            total_vendas: vendasPorImovel[codigo_imovel],
+            percentual: `${((vendasPorImovel[codigo_imovel] / totalVendas) * 100).toFixed(2)}%`
         }));
 
         res.json(percentualImoveis);
